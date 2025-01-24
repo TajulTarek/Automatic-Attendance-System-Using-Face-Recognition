@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Teacher = require('../models/Teacher');
+const Course = require('../models/Course');
 
 // Route to register a teacher
-router.post('/register', async (req, res) => {
+router.post('/add', async (req, res) => {
     const { teacher_id, email, name, password } = req.body;
 
     try {
@@ -31,24 +32,62 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { teacher_id, password } = req.body;
 
     try {
-        // Find the teacher by email
-        const teacher = await Teacher.findOne({ email });
-        if (!teacher) {
-            return res.status(400).json({ message: 'Teacher not found' });
+        const teacher = await Teacher.findOne({ teacher_id });
+        if (teacher && teacher.password === password) {
+            res.status(200).json({
+                success: true,
+                message: 'Login successful',
+                user: {
+                    id: teacher._id,
+                    teacher_id: teacher.teacher_id,
+                    name: teacher.name,
+                    email: teacher.email,
+                    role: teacher.role,
+                }
+            });
+        } else {
+            res.status(401).json({ success: false, message: 'Invalid email or password' });
         }
-
-        if (teacher.password !== password) {
-            return res.status(400).json({ message: 'Incorrect password' });
-        }
-
-        res.status(200).json({
-            message: 'Login successful'
-        });
     } catch (error) {
-        res.status(500).json({ message: 'Error logging in teacher', error: error.message });
+        res.status(500).json({ success: false, message: 'Error logging in teacher', error: error.message });
+    }
+});
+
+router.get('/:teacher_id', async (req, res) => {
+    const { teacher_id } = req.params;
+
+    try {
+        const teacher = await Teacher.findOne({ teacher_id: teacher_id });
+        if (!teacher) {
+            return res.status(404).json({ message: 'Teacher not found' });
+        }
+        const courses = teacher.assigned_courses
+
+        const courseDetails = [];
+
+        for (const course_id of courses) {
+            const course = await Course.findOne({ course_id: course_id }); // Find course by ID
+            if (course) {
+                courseDetails.push({
+                    id: course.course_id,
+                    name: course.name,
+                    total_students: course.student_ids.length 
+                });
+            }
+        }
+            
+        
+        res.status(200).json({
+            teacher_id: teacher.teacher_id,
+            name: teacher.name,
+            courses: courseDetails
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching teacher', error: error.message });
     }
 });
 

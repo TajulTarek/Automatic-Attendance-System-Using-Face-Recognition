@@ -60,7 +60,7 @@ if __name__ == "__main__":
     while True:
         try:
             # Choose the option
-            option = "2"
+            option = "1"
 
             if option == "1":
                 # Option 1: Capture an image from the webcam

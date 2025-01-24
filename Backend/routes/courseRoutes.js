@@ -152,4 +152,58 @@ router.post('/addSchedule', async (req, res) => {
 });
 
 
+router.get('/get_attendance/:course_id', async (req, res) => {
+    const { course_id } = req.params;
+
+    try {
+        // Find the course by its ID
+        const course = await Course.findOne({ course_id: course_id });
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        const studentIds = course.student_ids;
+
+        let studentAttendance = studentIds.map(() => []);
+        let classDates = []; 
+
+
+        course.classes.forEach((classData) => {
+            const { class_date, is_present } = classData; 
+
+            classDates.push(class_date.toISOString().split('T')[0]);
+
+            // Loop through the `is_present` array of each class
+            is_present.forEach((attendance) => {
+                const { student_id, present } = attendance;
+
+                // Find the index of the student in the studentIds array
+                const studentIndex = studentIds.indexOf(student_id);
+
+                if (studentIndex !== -1) {
+                    // Add the attendance status (boolean) to the student's attendance list
+                    studentAttendance[studentIndex].push(present);
+                }
+            });
+        });
+
+        studentIds.forEach((student_id, index) => {
+            console.log(`Student ID: ${student_id}`);
+            console.log(`Attendance: ${JSON.stringify(studentAttendance[index])}`);
+        });
+        
+        res.status(200).json({
+            name: course.name,
+            studentIds: studentIds,
+            classDates: classDates,
+            studentAttendance:studentAttendance
+        });
+    } catch (error) {
+        // Handle server errors
+        res.status(500).json({ message: 'Error fetching course', error: error.message });
+    }
+});
+
+
+
 module.exports = router;
