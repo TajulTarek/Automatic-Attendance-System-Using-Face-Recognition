@@ -82,7 +82,7 @@ cd Backend
 npm install
 ```
 
-#### **Frontend Admin**
+#### **Frontend Teacher-Student**
 ```sh
 cd Frontend
 cd teacher-student
