@@ -5,7 +5,7 @@ Here's a **professional and stylish** README.md file for your GitHub project. It
 # **🎓 Attendance Management System**  
 A **Node.js + MongoDB** based student attendance tracking system with course schedules, user roles, and real-time updates.
 
-![Project Banner](https://via.placeholder.com/1200x400?text=Attendance+Management+System)  
+![Project Banner]([https://via.placeholder.com/1200x400?text=Attendance+Management+System](https://www.vervelogic.com/blog/wp-content/uploads/2020/07/Face-Recognition-Automatic-Attendance-System.png))  
 *(Replace with an actual banner image!)*
 
 ![Node.js](https://img.shields.io/badge/Node.js-18.x-brightgreen?style=for-the-badge&logo=node.js) 
