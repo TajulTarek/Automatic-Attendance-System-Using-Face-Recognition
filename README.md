@@ -1,9 +1,9 @@
-Here's a **professional and stylish** README.md file for your GitHub project. It includes **clear sections, badges, emojis, and markdown styling** to make it visually appealing.  
-
 ---
 
-# **🎓 Attendance Management System**  
-A **Node.js + MongoDB** based student attendance tracking system with course schedules, user roles, and real-time updates.
+# **🎓 Automatic Attendance System Using Face Recognition**  
+A **Node.js + MongoDB** based **automatic attendance system using face recognition**, with scheduled tracking, real-time updates, and role-based access.
+
+
 
 ![Project Banner](https://www.vervelogic.com/blog/wp-content/uploads/2020/07/Face-Recognition-Automatic-Attendance-System.png)  
 
@@ -117,11 +117,27 @@ npm run dev
 ---
 
 ## **🔗 API Endpoints**
-| **Method** | **Endpoint**               | **Description**                |
-|-----------|--------------------------|-------------------------------|
-| `GET`     | `/users/upcoming/:id`    | Fetch upcoming classes for student |
-| `POST`    | `/users/register`        | Register a new user |
-| `POST`    | `/auth/login`            | User login |
+
+| **Method** | **Endpoint**                     | **Description**                                                                 |
+|------------|----------------------------------|---------------------------------------------------------------------------------|
+| `GET`      | `/users/upcoming/:studentId`     | Fetch upcoming classes for a specific student based on their enrolled courses.  |
+| `POST`     | `/users/register`                | Register a new user (student).                                                  |
+| `POST`     | `/auth/login`                    | Authenticate and log in a user (student or teacher).                            |
+| `POST`     | `/courses/create`                | Create a new course (admin-only).                                               |
+| `GET`      | `/courses/`                      | Fetch all courses.                                                              |
+| `POST`     | `/courses/addSchedule`           | Add a new schedule for a course.                                                |
+| `GET`      | `/courses/get_attendance/:course_id` | Fetch attendance data for a specific course.                                |
+| `POST`     | `/attendance/result`             | Update attendance records for a class based on the provided student IDs.        |
+| `POST`     | `/teachers/add`                  | Register a new teacher.                                                         |
+| `POST`     | `/teachers/login`                | Authenticate and log in a teacher.                                              |
+| `GET`      | `/teachers/:teacher_id`          | Fetch details of a specific teacher, including their assigned courses.          |
+| `GET`      | `/teachers/schedules/upcoming`   | Fetch all upcoming schedules for all teachers.                                  |
+| `GET`      | `/teachers/schedules/:teacherId` | Fetch upcoming schedules for a specific teacher's assigned courses.             |
+| `POST`     | `/users/upload-image`            | Upload an image for a student and process it using a Python script.             |
+| `GET`      | `/users/:student_id`             | Fetch details of a specific student, including their enrolled courses.          |
+
+---
+
 
 ---
 
@@ -147,9 +163,7 @@ Pull requests are welcome! Please open an issue first to discuss your changes.
 ---
 
 ## **📞 Contact**
-💬 **Tarek** – [GitHub](https://github.com/yourusername) | [LinkedIn](https://linkedin.com/in/yourname)  
-📧 **Email:** your@email.com  
+💬 **Tarek** – [GitHub](https://github.com/TajulTarek) 
+📧 **Email:** tarekahmad484@email.com  
 
 ---
-
-This README is designed to be **clear, professional, and visually appealing**. Feel free to **edit details** like the **banner, YouTube demo, and contributor info.** 🚀
