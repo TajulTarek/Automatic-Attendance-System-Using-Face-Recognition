@@ -1,6 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const bodyParser = require("body-parser");
+
+const path = require('path');
 
 const userRoutes = require('./routes/userRoutes');
 const courseRoutes = require('./routes/courseRoutes');
@@ -16,6 +19,10 @@ dotenv.config();
 
 const app = express();
 
+app.use(bodyParser.json({ limit: "50mb" })); // Allow large image uploads
+app.use(express.static("uploads")); // Serve images from the uploads folder
+
+
 // Use CORS middleware
 app.use(cors({
     origin: '*', // Allow requests from any origin
@@ -28,6 +35,8 @@ app.use(cors({
 app.use(express.json());
 
 // Routes
+app.use('/reports', express.static(path.join(__dirname, 'reports')));
+
 app.use('/users', userRoutes);
 app.use('/courses', courseRoutes);
 app.use('/teachers', teacherRoutes);

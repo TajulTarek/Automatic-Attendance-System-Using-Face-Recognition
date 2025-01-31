@@ -3,7 +3,186 @@ const router = express.Router();
 const Course = require('../models/Course');
 const User = require('../models/User')
 const Schedule = require('../models/Schedule');
-const Teacher=require('../models/Teacher')
+const Teacher = require('../models/Teacher')
+const fs = require('fs');
+const path = require('path');
+const PDFDocument = require('pdfkit'); 
+const axios = require('axios');
+
+
+const mockAttendanceData = {
+    name: 'AI',
+    classDates: ['2025-01-31', '2025-02-01'],
+    studentIds: ['2020331067', '2020331048', '2020331017', '2020331001', '2020331023', '2020331097'],
+    studentAttendance: [
+        [false, true],  // 2020331067
+        [false, false], // 2020331048
+        [false, false], // 2020331017
+        [false, false], // 2020331001
+        [false, false], // 2020331023
+        [false, false]  // 2020331097
+    ]
+};
+
+
+router.get('/generate_attendance_report/:courseId', async (req, res) => {
+    const { courseId } = req.params;
+
+    try {
+        // Fetch attendance data from the API
+        const response = await axios.get(`http://localhost:5000/courses/get_attendance/${courseId}`);
+        const attendanceData = response.data;
+
+        if (!attendanceData) {
+            return res.status(404).json({ message: 'Attendance data not found' });
+        }
+
+        // Create the reports directory if it doesn't exist
+        const reportsDir = path.join(__dirname, '..','reports');
+        if (!fs.existsSync(reportsDir)) {
+            fs.mkdirSync(reportsDir, { recursive: true });
+        }   
+
+        // Create a new PDF document
+        const doc = new PDFDocument({ margin: 50 });
+        const timestamp = Date.now(); // Get the current timestamp
+        const filePath = path.join(reportsDir, `attendance_report_${timestamp}.pdf`);
+
+        // Create the stream for the PDF file
+        doc.pipe(fs.createWriteStream(filePath));
+
+        // Add a title with proper styling
+        // doc.fontSize(24)
+        //     .font('Helvetica-Bold')
+        //     .fillColor('#2c3e50') // Dark blue color
+        //     .text(`Attendance Report for ${attendanceData.name}`, { align: 'center' });
+
+        // Add a subtitle with course ID
+        doc.fontSize(14)
+            .font('Helvetica')
+            .fillColor('#34495e') // Slightly lighter blue
+            .text(`Course Code: ${courseId}`, { align: 'center' });
+
+        // Define table dimensions
+        const tableTop = 80;
+        const rowHeight = 25;
+        const leftMargin = 20;
+
+        // Calculate the number of columns (excluding the first one)
+        const numColumns = attendanceData.classDates.length + 3; // Dates + Total Classes + Present + Percentage
+
+        // Calculate the available width for the table
+        const pageWidth = doc.page.width - 2 * leftMargin; // Subtract left and right margins
+        const colWidth = pageWidth / (numColumns + 1); // Divide by number of columns (including the first one)
+
+        // Draw table headers with proper styling
+        doc.fontSize(12)
+            .font('Helvetica-Bold')
+            .rect(leftMargin, tableTop, (numColumns + 1) * colWidth, rowHeight)
+            .fillAndStroke('#3498db', '#3498db'); // Blue background and border
+
+        // Add "Student ID" text
+        doc.fillColor('#ffffff') // White text
+            .text('Student ID', leftMargin + 10, tableTop + 10);
+
+        // Add date texts
+        attendanceData.classDates.forEach((date, index) => {
+            // Extract month and date from the date string
+            const formattedDate = date.slice(5); // Remove the year (first 4 characters and the hyphen)
+
+            doc.fillColor('#ffffff') // White text
+                .text(formattedDate, leftMargin + (index + 1) * colWidth + 10, tableTop + 10);
+        });
+
+        // Add new column headers
+        doc.fillColor('#ffffff') // White text
+            .text('TC', leftMargin + (attendanceData.classDates.length + 1) * colWidth + 10, tableTop + 10)
+            .text('P', leftMargin + (attendanceData.classDates.length + 2) * colWidth + 10, tableTop + 10)
+            .text('%', leftMargin + (attendanceData.classDates.length + 3) * colWidth + 10, tableTop + 10);
+
+        // Draw table rows with alternating colors for better readability
+        doc.font('Helvetica')
+            .fillColor('#2c3e50'); // Dark blue text
+        attendanceData.studentIds.forEach((studentId, rowIndex) => {
+            const y = tableTop + (rowIndex + 1) * rowHeight;
+
+            // Alternate row background color
+            if (rowIndex % 2 === 0) {
+                doc.rect(leftMargin, y, (numColumns + 1) * colWidth, rowHeight)
+                    .fillAndStroke('#ecf0f1', '#ecf0f1'); // Light gray background
+            } else {
+                doc.rect(leftMargin, y, (numColumns + 1) * colWidth, rowHeight)
+                    .fillAndStroke('#ffffff', '#ffffff'); // White background
+            }
+
+            // Add student ID
+            doc.fillColor('#2c3e50') // Dark blue text
+                .text(studentId, leftMargin + 10, y + 10);
+
+            // Add attendance marks
+            attendanceData.studentAttendance[rowIndex].forEach((attendance, colIndex) => {
+                const x = leftMargin + (colIndex + 1) * colWidth + 10;
+
+                // Set font size smaller for P and A
+                doc.fontSize(10);
+
+                // Set color based on attendance
+                if (attendance) {
+                    doc.fillColor('#27ae60'); // Green for Present
+                } else {
+                    doc.fillColor('#e74c3c'); // Red for Absent
+                }
+
+                // Add P or A
+                doc.text(attendance ? 'P' : 'A', x, y + 10);
+
+                // Reset font size and color for other text
+                doc.fontSize(12).fillColor('#2c3e50'); // Reset to default
+            });
+
+            // Calculate total classes, present classes, and attendance percentage
+            const totalClasses = attendanceData.classDates.length;
+            const presentClasses = attendanceData.studentAttendance[rowIndex].filter((attendance) => attendance).length;
+            const attendancePercentage = ((presentClasses / totalClasses) * 100).toFixed(2);
+
+            // Add total classes
+            doc.fillColor('#2c3e50') // Dark blue text
+                .text(totalClasses.toString(), leftMargin + (attendanceData.classDates.length + 1) * colWidth + 10, y + 10);
+
+            // Add present classes
+            doc.fillColor('#2c3e50') // Dark blue text
+                .text(presentClasses.toString(), leftMargin + (attendanceData.classDates.length + 2) * colWidth + 10, y + 10);
+
+            // Add attendance percentage
+            doc.fillColor('#2c3e50') // Dark blue text
+                .text(`${attendancePercentage}%`, leftMargin + (attendanceData.classDates.length + 3) * colWidth + 10, y + 10);
+        });
+
+        // Draw table borders
+        doc.lineWidth(1)
+            .strokeColor('#bdc3c7') // Light gray border
+            .rect(leftMargin, tableTop, (numColumns + 1) * colWidth, (attendanceData.studentIds.length + 1) * rowHeight)
+            .stroke();
+
+        // Add a footer with the generation date
+        const footerText = `Report generated on: ${new Date().toLocaleDateString()}`;
+        doc.fontSize(10)
+            .font('Helvetica')
+            .fillColor('#7f8c8d') // Gray text
+            .text(footerText, { align: 'center', width: doc.page.width - 100, height: 50 });
+
+        // Finalize the PDF and save it to the file system
+        doc.end();
+
+        // Send the path of the saved PDF as the response
+        res.json({ filePath: `/reports/attendance_report_${timestamp}.pdf` });
+
+    } catch (err) {
+        console.error('Error generating PDF:', err);
+        res.status(500).json({ message: 'Error generating PDF' });
+    }
+});
+
 
 // Helper function to check if two time ranges overlap
 function isTimeOverlap(existingStart, existingEnd, newStart, newEnd) {
@@ -203,6 +382,7 @@ router.get('/get_attendance/:course_id', async (req, res) => {
         res.status(500).json({ message: 'Error fetching course', error: error.message });
     }
 });
+
 
 
 

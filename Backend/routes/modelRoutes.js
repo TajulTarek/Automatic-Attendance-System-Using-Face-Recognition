@@ -3,6 +3,44 @@ const Schedule = require('../models/Schedule');
 const Course = require('../models/Course');
 const router = express.Router();
 
+const getCurrentDate = () => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Dhaka',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+    const [{ value: month }, , { value: day }, , { value: year }] = formatter.formatToParts(now);
+    return `${year}-${month}-${day}`; // Return YYYY-MM-DD
+};
+
+// Utility function to get the current time in HH:mm format
+const getCurrentTime = () => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Dhaka',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+    const [{ value: hour }, , { value: minute }] = formatter.formatToParts(now);
+
+
+    // Ensure that the hour doesn't exceed 23 (24:00 -> 00:00)
+    let adjustedHour = parseInt(hour);
+    if (adjustedHour >= 24) {
+        adjustedHour -= 24;
+    }
+
+    // Format the hour to ensure two digits
+    adjustedHour = adjustedHour < 10 ? `0${adjustedHour}` : adjustedHour;
+
+    return `${adjustedHour}:${minute}`; // Return HH:mm
+};
+
+
+
 router.post('/result', async (req, res) => {
     try {
         const result = req.body.result; // List of student IDs who are present
@@ -11,10 +49,10 @@ router.post('/result', async (req, res) => {
         console.log(result)
 
         // Format the current date to match the format in the database ("YYYY-MM-DD")
-        const currentDate = currentTime.toISOString().split('T')[0];
+        const currentDate = getCurrentDate()
 
         // Format the current time as "HH:mm"
-        const currentTimeStr = currentTime.toTimeString().split(' ')[0].substring(0, 5);
+        const currentTimeStr = getCurrentTime()
 
         console.log("Current Date:", currentDate);
         console.log("Current Time:", currentTimeStr);

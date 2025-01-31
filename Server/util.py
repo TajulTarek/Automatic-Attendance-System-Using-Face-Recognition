@@ -4,6 +4,7 @@ import dlib
 import pickle
 import time
 import cv2
+import os
 
 def initialize():
     global loaded_descriptors, loaded_mp, mp_list, face_detector, points_detector, face_descriptor_extractor
@@ -27,7 +28,7 @@ def initialize():
         config.FACE_RECOGNITION_MODEL_PATH
     )
 
-def capture_image_from_webcam(delay=3):
+def capture_image_from_webcam(save_dir="captured_images", filename="image.jpg",delay=3):
     
     cam = cv2.VideoCapture(0)  # Open the webcam (index 0)
     if not cam.isOpened():
@@ -42,10 +43,16 @@ def capture_image_from_webcam(delay=3):
         raise Exception("Failed to capture an image from the webcam")
     
     print("Image captured successfully.")
+
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, filename)
+    cv2.imwrite(save_path, frame)
+    print(f"Image saved at: {save_path}")
+
     cam.release()
     cv2.destroyAllWindows()
-    return frame
-
+    return save_path
+    
 def load_image_from_path(image_path):
 
     image = cv2.imread(image_path)
@@ -54,42 +61,44 @@ def load_image_from_path(image_path):
     return image
 
 
-def predict_class(img_path):
-    from PIL import Image
-    import numpy as np
+# def predict_class(img_path):
+#     from PIL import Image
+#     import numpy as np
 
-    global loaded_descriptors
-    image=Image.open(img_path).convert('RGB')
-    image_np=np.array(image,'uint8')
-    face_detection=face_detector(image_np,1)
-    for face in face_detection:
-        points=points_detector(image_np,face)
+#     global loaded_descriptors
+#     image=Image.open(img_path).convert('RGB')
+#     image_np=np.array(image,'uint8')
+#     face_detection=face_detector(image_np,1)
+#     for face in face_detection:
+#         points=points_detector(image_np,face)
 
-        face_descriptor = face_descriptor_extractor.compute_face_descriptor(image_np, points)
-        face_descriptor = [f for f in face_descriptor]
-        face_descriptor = np.asarray(face_descriptor, dtype=np.float64)
-        face_descriptor = face_descriptor[np.newaxis, :]
+#         face_descriptor = face_descriptor_extractor.compute_face_descriptor(image_np, points)
+#         face_descriptor = [f for f in face_descriptor]
+#         face_descriptor = np.asarray(face_descriptor, dtype=np.float64)
+#         face_descriptor = face_descriptor[np.newaxis, :]
 
-        distances = np.linalg.norm(face_descriptor - loaded_descriptors, axis = 1)
-        min_index=np.argmin(distances)
-        #print(min_index)
-        min_distance=distances[min_index]
-        #print(min_distance)
-        if min_distance<=0.5:
-            name_pred=mp_list[min_index][1]
-        else:
-            name_pred='Undefined'
+#         distances = np.linalg.norm(face_descriptor - loaded_descriptors, axis = 1)
+#         min_index=np.argmin(distances)
+#         #print(min_index)
+#         min_distance=distances[min_index]
+#         #print(min_distance)
+#         if min_distance<=0.5:
+#             name_pred=mp_list[min_index][1]
+#         else:
+#             name_pred='Undefined'
 
-        #cv2.putText(image_np, 'Pred: ' + str(name_pred), (10, 10), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0,0,255))
-        #cv2.putText(image_np, 'Exp : ' + str(name_real), (10, 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0,255,0))
-        #print(name_pred)
-        return name_pred
+#         #cv2.putText(image_np, 'Pred: ' + str(name_pred), (10, 10), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0,0,255))
+#         #cv2.putText(image_np, 'Exp : ' + str(name_real), (10, 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0,255,0))
+#         #print(name_pred)
+#         return name_pred
     
 def get_class_from_np_img(image_np):
     
     results = [] 
 
     face_detection=face_detector(image_np,1)
+
+    #print(type(face_detection))
 
     for face in face_detection:
         points=points_detector(image_np,face)
@@ -112,4 +121,25 @@ def get_class_from_np_img(image_np):
 
     return results
 
+def get_class_from_yolo_img(image_np,face_detection):
+    results = [] 
+    for face in face_detection:
+        points=points_detector(image_np,face)
 
+        face_descriptor = face_descriptor_extractor.compute_face_descriptor(image_np, points)
+        face_descriptor = [f for f in face_descriptor]
+        face_descriptor = np.asarray(face_descriptor, dtype=np.float64)
+        face_descriptor = face_descriptor[np.newaxis, :]
+
+        distances = np.linalg.norm(face_descriptor - loaded_descriptors, axis = 1)
+        min_index=np.argmin(distances)
+        #print(min_index)
+        min_distance=distances[min_index]
+        #print(min_distance)
+        if min_distance<=0.5:
+            name_pred=mp_list[min_index][1]
+        else:
+            name_pred='Undefined'
+        results.append(name_pred)
+
+    return results

@@ -2,6 +2,45 @@ const express = require('express');
 const router = express.Router();
 const Teacher = require('../models/Teacher');
 const Course = require('../models/Course');
+const Schedule=require('../models/Schedule')
+
+const getCurrentDate = () => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Dhaka',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+    const [{ value: month }, , { value: day }, , { value: year }] = formatter.formatToParts(now);
+    return `${year}-${month}-${day}`; // Return YYYY-MM-DD
+};
+
+// Utility function to get the current time in HH:mm format
+const getCurrentTime = () => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Dhaka',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+    const [{ value: hour }, , { value: minute }] = formatter.formatToParts(now);
+
+
+    // Ensure that the hour doesn't exceed 23 (24:00 -> 00:00)
+    let adjustedHour = parseInt(hour);
+    if (adjustedHour >= 24) {
+        adjustedHour -= 24;
+    }
+
+    // Format the hour to ensure two digits
+    adjustedHour = adjustedHour < 10 ? `0${adjustedHour}` : adjustedHour;
+
+    return `${adjustedHour}:${minute}`; // Return HH:mm
+};
+
+
 
 // Route to register a teacher
 router.post('/add', async (req, res) => {
@@ -90,5 +129,60 @@ router.get('/:teacher_id', async (req, res) => {
         res.status(500).json({ message: 'Error fetching teacher', error: error.message });
     }
 });
+
+router.get('/schedules/upcoming', async (req, res) => {
+    try {
+        const todayDate = getCurrentDate()
+        const currentTime = getCurrentTime()
+
+        // Fetch all upcoming schedules (future dates or today with upcoming times)
+        const upcomingSchedules = await Schedule.find({
+            $or: [
+                { date: { $gt: todayDate } }, // Future dates
+                { date: todayDate, start_time: { $gte: currentTime } } // Today but upcoming times
+            ]
+        }).sort({ date: 1, start_time: 1 }); // Sort by date and time
+
+
+
+        // Send the response with the upcoming classes
+        res.json({ upcomingClasses: upcomingSchedules });
+    } catch (error) {
+        console.error('Error fetching upcoming schedules:', error);
+        res.status(500).json({ message: 'Error fetching upcoming schedules' });
+    }
+});
+
+router.get('/schedules/:teacherId', async (req, res) => {
+    try {
+        const teacherId = req.params.teacherId;
+
+        // Find the teacher and their assigned courses
+        const teacher = await Teacher.findOne({teacher_id: teacherId});
+        if (!teacher) {
+            return res.status(404).json({ message: 'Teacher not found' });
+        }
+
+        const courseIds = teacher.assigned_courses;
+
+        const todayDate = getCurrentDate()
+        const currentTime = getCurrentTime()
+        // Fetch upcoming schedules for the teacher's assigned courses
+        const upcomingSchedules = await Schedule.find({
+            course_id: { $in: courseIds }, // Filter by courses the teacher is teaching
+            $or: [
+                { date: { $gt: todayDate } }, // Future dates
+                { date: todayDate, start_time: { $gte: currentTime } } // Today but upcoming times
+            ]
+        }).sort({ date: 1, start_time: 1 }); // Sort by date and time
+
+        // Send the response with the teacher's upcoming schedules
+        res.json({ upcomingClasses: upcomingSchedules });
+    } catch (error) {
+        console.error('Error fetching teacher schedules:', error);
+        res.status(500).json({ message: 'Error fetching teacher schedules' });
+    }
+});
+
 
 module.exports = router;
