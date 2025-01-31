@@ -21,21 +21,20 @@ A **Node.js + MongoDB** based student attendance tracking system with course sch
 
 ## **📌 Features**
 ✅ **Automatic Attendance Updates** – The system automatically marks attendance for each student in every class.  
+✅ **Face Recognition Model Updates** – Students can add more photos to improve recognition accuracy, and the system updates the model dynamically.  
+✅ **Scheduled Attendance Capturing** – Teachers can set specific class times when the system will take photos and record attendance automatically.
+✅ **Live Attendance Monitoring** – Real-time tracking of students' presence.  
+✅ **Downloadable Attendance Sheets** – Both teachers and students can view and download attendance records. 
 ✅ **Student Enrollment** – Track and manage enrolled courses for each student.  
 ✅ **Upcoming Classes** – Fetch schedules dynamically and display upcoming sessions.  
-✅ **Admin, Teacher, Student Roles** – Secure role-based authentication with access control.  
-✅ **Live Attendance Monitoring** – Real-time tracking of students' presence.  
-✅ **Downloadable Attendance Sheets** – Both teachers and students can view and download attendance records.  
-✅ **Face Recognition Model Updates** – Students can add more photos to improve recognition accuracy, and the system updates the model dynamically.  
-✅ **Scheduled Attendance Capturing** – Teachers can set specific class times when the system will take photos and record attendance automatically.   
+✅ **Admin, Teacher, Student Roles** – Secure role-based authentication with access control.     
 
 ---
 
 ## **🛠 Tech Stack**
 🚀 **Backend:** Node.js, Express.js  
 🗄 **Database:** MongoDB (Mongoose ODM)  
-🎨 **Frontend:** React.js (if applicable)  
-🛡 **Auth:** JWT, bcrypt  
+🎨 **Frontend:** React.js
 
 ---
 
@@ -56,6 +55,7 @@ A **Node.js + MongoDB** based student attendance tracking system with course sch
 │   ├── 📂 src
 │   │   ├── 📂 components
 │   │   ├── 📂 pages
+
 ```
 
 ---
@@ -63,20 +63,28 @@ A **Node.js + MongoDB** based student attendance tracking system with course sch
 ## **🚀 Installation & Setup**
 ### **1️⃣ Clone the Repository**
 ```sh
-git clone https://github.com/yourusername/attendance-system.git
+git clone https://github.com/TajulTarek/Automatic-Attendance-System-Using-Face-Recognition.git
 cd attendance-system
 ```
 
 ### **2️⃣ Install Dependencies**
 #### **Backend**
 ```sh
-cd backend
+cd Backend
 npm install
 ```
 
-#### **Frontend (if applicable)**
+#### **Frontend Admin**
 ```sh
-cd frontend
+cd Frontend
+cd teacher-student
+npm install
+```
+
+#### **Frontend Admin**
+```sh
+cd Frontend
+cd admin
 npm install
 ```
 
@@ -85,7 +93,6 @@ Create a `.env` file in **backend/**:
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
 ```
 
 ### **4️⃣ Run the Application**
@@ -95,9 +102,9 @@ npm start
 ```
 #### **Frontend**
 ```sh
-npm start
+npm run dev
 ```
-*(Runs on `localhost:3000` by default.)*
+*(Runs on `localhost:3073` by default.)*
 
 ---
 
