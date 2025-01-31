@@ -20,7 +20,7 @@ A **Node.js + MongoDB** based student attendance tracking system with course sch
 ---
 
 ## **📌 Features**
-✅ **Automatic Attendance Updates** – The system automatically marks attendance for each student in every class.  
+✅ **Automatic Attendance Updates** – The system automatically marks attendance for each student in every class.  \n
 ✅ **Face Recognition Model Updates** – Students can add more photos to improve recognition accuracy, and the system updates the model dynamically.  
 ✅ **Scheduled Attendance Capturing** – Teachers can set specific class times when the system will take photos and record attendance automatically.
 ✅ **Live Attendance Monitoring** – Real-time tracking of students' presence.  
