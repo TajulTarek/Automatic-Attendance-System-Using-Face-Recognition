@@ -6,12 +6,16 @@ Here's a **professional and stylish** README.md file for your GitHub project. It
 A **Node.js + MongoDB** based student attendance tracking system with course schedules, user roles, and real-time updates.
 
 ![Project Banner](https://www.vervelogic.com/blog/wp-content/uploads/2020/07/Face-Recognition-Automatic-Attendance-System.png)  
-*(Replace with an actual banner image!)*
+
 
 ![Node.js](https://img.shields.io/badge/Node.js-18.x-brightgreen?style=for-the-badge&logo=node.js) 
 ![MongoDB](https://img.shields.io/badge/MongoDB-6.x-green?style=for-the-badge&logo=mongodb)  
 ![Express.js](https://img.shields.io/badge/Express.js-4.x-blue?style=for-the-badge)  
 ![React.js](https://img.shields.io/badge/React.js-18.x-blue?style=for-the-badge&logo=react)  
+![Python](https://img.shields.io/badge/Python-3.x-yellow?style=for-the-badge&logo=python)  
+![YOLOv8](https://img.shields.io/badge/YOLOv8-Face%20Detection-red?style=for-the-badge)  
+![ResNet_v1](https://img.shields.io/badge/ResNet_v1-Face%20Recognition-orange?style=for-the-badge)  
+
 
 ---
 
