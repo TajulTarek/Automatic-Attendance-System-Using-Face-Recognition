@@ -20,11 +20,14 @@ A **Node.js + MongoDB** based student attendance tracking system with course sch
 ---
 
 ## **📌 Features**
-✅ **Student Enrollment** – Track courses for each student  
-✅ **Upcoming Classes** – Fetch upcoming schedules dynamically  
-✅ **Admin, Teacher, Student Roles** – Secure role-based authentication  
-✅ **Real-time Attendance Updates**  
-✅ **MongoDB Database Integration**  
+✅ **Automatic Attendance Updates** – The system automatically marks attendance for each student in every class.  
+✅ **Student Enrollment** – Track and manage enrolled courses for each student.  
+✅ **Upcoming Classes** – Fetch schedules dynamically and display upcoming sessions.  
+✅ **Admin, Teacher, Student Roles** – Secure role-based authentication with access control.  
+✅ **Live Attendance Monitoring** – Real-time tracking of students' presence.  
+✅ **Downloadable Attendance Sheets** – Both teachers and students can view and download attendance records.  
+✅ **Face Recognition Model Updates** – Students can add more photos to improve recognition accuracy, and the system updates the model dynamically.  
+✅ **Scheduled Attendance Capturing** – Teachers can set specific class times when the system will take photos and record attendance automatically.   
 
 ---
 
