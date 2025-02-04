@@ -67,10 +67,10 @@ if __name__ == "__main__":
                 if image_path is None:
                     continue  
             elif option == "2":
-                image_path = "C:/Users/tarek/Downloads/WhatsApp Image 2025-01-16 at 1.57.54 PM.jpeg"
+                image_path = "C:/Users/tarek/Downloads/WhatsApp Image 2025-02-01 at 11.15.41 PM.jpeg"
 
             if face_detection_type=='yolov8':
-        
+    
                 bounding_boxes=yolo_detect(image_path)
 
                 face_detection = dlib.rectangles()
@@ -87,13 +87,11 @@ if __name__ == "__main__":
 
                 results = get_class_from_np_img(image_np)
 
-            # Uncomment to send the result to an API
             call_api_with_result(results)
 
             print("Result:", results)
 
-            # Wait for 5 seconds before the next iteration
-            time.sleep(20)
+            time.sleep(5)
 
         except Exception as e:
             print(f"An error occurred: {e}")
