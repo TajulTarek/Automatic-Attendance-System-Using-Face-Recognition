@@ -16,29 +16,22 @@ if __name__ == "__main__":
         try:
             face_detection_type='yolov8'
             model=""
-            option = "1"
+            image_path = capture_from_camera("g2","192.168.0.224","8080")           # 0.2 sec
+            #image_path = capture_image_from_webcam() 
 
-            if option == "1":
-
-                # image_path = capture_from_camera("g2","192.168.225.80","8080") # 0.2 sec
-                image_path = capture_image_from_webcam()
-                if image_path is None:
-                    continue 
-
-            elif option == "2":
-                image_path = "./uploads_photo/image_1738267122992.png"
+            if image_path is None:
+                continue 
 
             if model=="insight_face":
                 print("model")
                 
             elif face_detection_type=='yolov8':
                 
-                
                 bounding_boxes=yolo_detect(image_path)          # 12 sec
-
 
                 face_detection = dlib.rectangles()
                 for x1, y1, x2, y2 in bounding_boxes:
+                    
                     face_detection.append(dlib.rectangle(left=x1, top=y1, right=x2, bottom=y2))
 
                 image_np=load_image_from_path(image_path)
