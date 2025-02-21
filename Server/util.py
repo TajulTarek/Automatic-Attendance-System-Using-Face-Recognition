@@ -51,7 +51,7 @@ def call_api_with_result(result,room_no):
 
 
 
-def capture_image_from_webcam(save_dir="captured_images", filename="image.jpg",delay=3):
+def capture_image_from_webcam(save_dir="./captured_images", filename="image.jpg",delay=3):
     
     cam = cv2.VideoCapture(0)  # Open the webcam (index 0)
     if not cam.isOpened():
