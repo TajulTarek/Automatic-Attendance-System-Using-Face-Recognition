@@ -1,6 +1,7 @@
 const express = require('express');
 const Schedule = require('../models/Schedule');
 const Course = require('../models/Course');
+const RoomToCourse = require('../models/RoomToCourse');
 const router = express.Router();
 
 const getCurrentDate = () => {
@@ -22,10 +23,11 @@ const getCurrentTime = () => {
         timeZone: 'Asia/Dhaka',
         hour: '2-digit',
         minute: '2-digit',
+        second: '2-digit',
         hour12: false,
     });
-    const [{ value: hour }, , { value: minute }] = formatter.formatToParts(now);
 
+    const [{ value: hour }, , { value: minute }, , { value: second }] = formatter.formatToParts(now);
 
     // Ensure that the hour doesn't exceed 23 (24:00 -> 00:00)
     let adjustedHour = parseInt(hour);
@@ -36,14 +38,17 @@ const getCurrentTime = () => {
     // Format the hour to ensure two digits
     adjustedHour = adjustedHour < 10 ? `0${adjustedHour}` : adjustedHour;
 
-    return `${adjustedHour}:${minute}`; // Return HH:mm
+    return `${adjustedHour}:${minute}:${second}`; // Return HH:mm:ss
 };
+
+console.log(getCurrentTime());
 
 
 
 router.post('/result', async (req, res) => {
     try {
         const result = req.body.result; // List of student IDs who are present
+        const room_no = req.body.room_no;
         const currentTime = new Date(); // Get the current date and time
 
         console.log(result)
@@ -58,23 +63,29 @@ router.post('/result', async (req, res) => {
         console.log("Current Time:", currentTimeStr);
 
         // Find the course where the current date matches and time is between start_time and end_time
-        const schedule = await Schedule.findOne({
-            date: currentDate,
-            start_time: { $lte: currentTimeStr }, // start_time <= current time
-            end_time: { $gte: currentTimeStr }   // end_time >= current time
-        });
+        const room = await RoomToCourse.findOne({ room_id:room_no });
 
-        if (!schedule) {
-            return res.status(404).json({ message: 'No class found for today.' });
+        const course = await Course.findOne({ course_id: room.current_course_id });
+        
+        if (!course) {
+            throw new Error('Course not found');
         }
 
-        const course = await Course.findOne({ course_id: schedule.course_id });
+        const class_id = room.class_id;
 
-        console.log(course.name);
+        const classForToday = course.classes.id(class_id);  // Assuming class_id is an ObjectId
 
-        const classForToday = course.classes.find(c => c.class_date.toISOString().split('T')[0] === currentDate);
+        if (!classForToday) {
+            throw new Error('Class not found');
+        }
 
-        console.log(classForToday.class_date)
+        // Now `classForToday` holds the class object from the `classes` sub-collection
+        // console.log(classForToday);
+
+        // console.log(course.name);
+
+
+        // console.log(classForToday.class_date)
 
 
 
@@ -83,6 +94,9 @@ router.post('/result', async (req, res) => {
         }
         const present_student_ids = result;
 
+        classForToday.all_times.push(currentTimeStr)
+        await course.save();
+        
         for (const present_student_id of present_student_ids) {
 
             const present_student_Record = classForToday.attendance.find(a => a.student_id === present_student_id);

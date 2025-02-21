@@ -2,7 +2,7 @@ import requests
 from PIL import Image
 import numpy as np
 import time
-from util import  initialize, get_class_from_np_img, capture_image_from_webcam, load_image_from_path,get_class_from_yolo_img
+from util import  *
 from runner import yolo_detect
 import dlib
 
@@ -31,26 +31,6 @@ import dlib
 #     initialize()
 #     return predict_class(img_path)
 
-
-def call_api_with_result(result):
-    url = "http://localhost:5000/models/result" 
-    data = {"result": result} # Data to be sent in the POST request
-    headers = {"Content-Type": "application/json"}  # Set headers for JSON content
-
-    try:
-        # Sending a POST request to the Node.js API with the result data
-        response = requests.post(url, json=data, headers=headers)
-
-        # Checking the response from the API
-        if response.status_code == 200:
-            print("API Response:", response.json())  # Print the response from your Node.js API
-        else:
-            print(f"Error: {response.status_code} - {response.text}")
-
-    except requests.exceptions.RequestException as e:
-        print(f"Request failed: {e}")  # Error handling for the HTTP request
-
-
 import time  # Import the time module
 
 if __name__ == "__main__":
@@ -63,11 +43,18 @@ if __name__ == "__main__":
             option = "1"
 
             if option == "1":
+                start_time = time.time()
+
                 image_path = capture_image_from_webcam()
+
+                end_time = time.time()
+                execution_time = end_time - start_time
+
+                print(f"Execution Time: {execution_time:.4f} seconds")
                 if image_path is None:
                     continue  
             elif option == "2":
-                image_path = "C:/Users/tarek/Downloads/WhatsApp Image 2025-02-01 at 11.15.41 PM.jpeg"
+                image_path = "C:/Users/tarek/OneDrive/Desktop/Attendance/uploads_photo/image_1738267122992.png"
 
             if face_detection_type=='yolov8':
     
@@ -87,7 +74,7 @@ if __name__ == "__main__":
 
                 results = get_class_from_np_img(image_np)
 
-            call_api_with_result(results)
+            call_api_with_result(results,"gallery 1")
 
             print("Result:", results)
 

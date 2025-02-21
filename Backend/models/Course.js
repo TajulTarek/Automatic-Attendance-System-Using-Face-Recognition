@@ -10,6 +10,7 @@ const courseSchema = new mongoose.Schema(
         total_class: { type: Number, default: 0 }, // Total number of classes
         classes: [
             {
+                all_times: [{ type: String }],
                 class_date: { type: Date, required: true }, // Date of the class
                 attendance: [
                     {

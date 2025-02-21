@@ -95,6 +95,8 @@ router.post('/login', async (req, res) => {
     }
 });
 
+
+
 router.get('/:teacher_id', async (req, res) => {
     const { teacher_id } = req.params;
 

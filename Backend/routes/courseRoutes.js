@@ -8,6 +8,8 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit'); 
 const axios = require('axios');
+const RoomToCourse = require('../models/RoomToCourse');
+const mongoose = require('mongoose');
 
 
 const mockAttendanceData = {
@@ -348,20 +350,20 @@ router.get('/get_attendance/:course_id', async (req, res) => {
 
 
         course.classes.forEach((classData) => {
-            const { class_date, is_present } = classData; 
+            const { class_date, attendance } = classData; 
 
             classDates.push(class_date.toISOString().split('T')[0]);
 
             // Loop through the `is_present` array of each class
-            is_present.forEach((attendance) => {
-                const { student_id, present } = attendance;
+            attendance.forEach((times_obj) => {
+                const { student_id, times } = times_obj;
 
                 // Find the index of the student in the studentIds array
                 const studentIndex = studentIds.indexOf(student_id);
 
                 if (studentIndex !== -1) {
                     // Add the attendance status (boolean) to the student's attendance list
-                    studentAttendance[studentIndex].push(present);
+                    studentAttendance[studentIndex].push(times);
                 }
             });
         });
@@ -375,7 +377,7 @@ router.get('/get_attendance/:course_id', async (req, res) => {
             name: course.name,
             studentIds: studentIds,
             classDates: classDates,
-            studentAttendance:studentAttendance
+            studentAttendance: studentAttendance
         });
     } catch (error) {
         // Handle server errors
@@ -383,6 +385,102 @@ router.get('/get_attendance/:course_id', async (req, res) => {
     }
 });
 
+
+router.post('/start-class', async (req, res) => {
+    try {
+        const { room_id, course_id } = req.body;
+
+        // Check if a class is already running in the room
+        let room = await RoomToCourse.findOne({ room_id });
+
+        if (room && room.current_course_id) {
+            return res.status(400).json({ success: false, message: "A class is already running in this room." });
+        }
+
+        // Find the course details
+        const course = await Course.findOne({ course_id: course_id });
+        if (!course) {
+            return res.status(404).json({ success: false, message: "Course not found." });
+        }
+
+        course.total_class += 1;
+    
+
+        const newClass = {
+            _id: new mongoose.Types.ObjectId(),
+            all_times: [],
+            class_date: new Date(new Date().getTime() + 6 * 60 * 60 * 1000), // Converts to GMT+6
+            attendance: course.student_ids.map(student_id => ({
+                student_id,
+                times: []  // Initialize an empty list for times the student was present
+            })),
+            is_present: course.student_ids.map(student_id => ({
+                student_id,
+                present: false  // Initialize the present flag as false for each student
+            }))
+        };
+
+
+        course.classes.push(newClass);
+
+        // Save the updated course document
+        await course.save();
+
+        if (!room) {
+            room = new RoomToCourse({ room_id, current_course_id: course_id, class_id: newClass._id });
+        } else {
+            room.current_course_id = course_id;
+            room.class_id = newClass._id;
+        }   
+
+        await room.save();
+
+        res.json({ success: true, message: `Class for ${course.name} started in room ${room_id}.` });
+
+    } catch (error) {
+        console.error("Error starting class:", error);
+        res.status(500).json({ success: false, message: "Error starting class." });
+    }
+});
+
+
+router.get('/rooms', async (req, res) => {
+    try {
+        const rooms = await RoomToCourse.find();
+        res.status(200).json(rooms);
+    } catch (error) {
+        console.error('Error fetching room data:', error);
+        res.status(500).json({ success: false, message: 'Error fetching room data' });
+    }
+});
+
+// routes/courses.js
+router.post('/end-class', async (req, res) => {
+    try {
+        const { room_id, course_id } = req.body;
+
+        // Find the room where the class is running
+        let room = await RoomToCourse.findOne({ room_id });
+
+        if (!room || room.current_course_id !== course_id) {
+            return res.status(400).json({ success: false, message: 'No class is running in this room or the course does not match.' });
+        }
+
+        // Set current_course_id and class_id to null
+        room.current_course_id = null;
+        room.class_id = null;
+
+        // Save the room with the updated values
+        await room.save();
+
+        // Optionally, you may want to mark the course as no longer running by updating its status in the Course model
+
+        res.json({ success: true, message: `Class for ${course_id} has been ended.` });
+    } catch (error) {
+        console.error('Error ending class:', error);
+        res.status(500).json({ success: false, message: 'Error ending class.' });
+    }
+});
 
 
 

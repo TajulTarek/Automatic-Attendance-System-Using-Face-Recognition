@@ -2,12 +2,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const bodyParser = require("body-parser");
-
 const path = require('path');
-
 const userRoutes = require('./routes/userRoutes');
 const courseRoutes = require('./routes/courseRoutes');
+
 const teacherRoutes = require('./routes/teacherRoutes');
+
+
+
+``
 const modelRoutes = require('./routes/modelRoutes');
 
 const cors = require('cors');
@@ -41,6 +44,8 @@ app.use('/users', userRoutes);
 app.use('/courses', courseRoutes);
 app.use('/teachers', teacherRoutes);
 app.use('/models',modelRoutes);
+
+
 
 mongoose
     .connect(process.env.MONGO_URI)
