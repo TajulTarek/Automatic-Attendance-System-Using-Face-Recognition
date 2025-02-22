@@ -11,13 +11,15 @@ const axios = require('axios');
 const RoomToCourse = require('../models/RoomToCourse');
 const mongoose = require('mongoose');
 const pdf = require('html-pdf');
+const puppeteer = require('puppeteer');
+
 
 
 router.get('/generate_attendance_report/:courseId', async (req, res) => {
     const { courseId } = req.params;
     const { requiredMinutes } = req.query;
 
-    console.log(requiredMinutes);
+    console.log("Required Minutes:", requiredMinutes);
 
     try {
         // Fetch attendance data from the API
@@ -43,54 +45,48 @@ router.get('/generate_attendance_report/:courseId', async (req, res) => {
         doc.pipe(fs.createWriteStream(filePath));
 
         // Add a title with proper styling
-        // doc.fontSize(24)
-        //     .font('Helvetica-Bold')
-        //     .fillColor('#2c3e50') // Dark blue color
-        //     .text(`Attendance Report for ${attendanceData.name}`, { align: 'center' });
+        doc.fontSize(16)
+            .font('Helvetica-Bold')
+            .fillColor('#2c3e50') // Dark blue color
+            .text(`Attendance Report for ${attendanceData.name}`, { align: 'center' });
 
         // Add a subtitle with course ID
-
-        doc.fontSize(14)
+        doc.fontSize(12)
             .font('Helvetica')
             .fillColor('#34495e') // Slightly lighter blue
             .text(`Course Code: ${courseId}`, { align: 'center' });
 
         // Define table dimensions
-        const tableTop = 80;
+        const tableTop = 100;
         const rowHeight = 25;
-        const leftMargin = 20;
+        const leftMargin = 40;
 
-        // Calculate the number of columns (excluding the first one)
-        const numColumns = attendanceData.classDates.length + 3; // Dates + Total Classes + Present + Percentage
+        // Calculate the number of columns (including Student ID, Dates, TC, Total Ratio, %, Marks)
+        const numColumns = attendanceData.classDates.length + 5; // Student ID + Dates + TC + Total Ratio + % + Marks
 
         // Calculate the available width for the table
         const pageWidth = doc.page.width - 2 * leftMargin; // Subtract left and right margins
-        const colWidth = pageWidth / (numColumns + 1); // Divide by number of columns (including the first one)
+        const colWidth = pageWidth / numColumns; // Divide by number of columns
 
         // Draw table headers with proper styling
-        doc.fontSize(12)
+        doc.fontSize(8)
             .font('Helvetica-Bold')
-            .rect(leftMargin, tableTop, (numColumns + 1) * colWidth, rowHeight)
-            .fillAndStroke('#3498db', '#3498db'); // Blue background and border
+            .rect(leftMargin, tableTop, numColumns * colWidth, rowHeight)
+            .fillAndStroke('#2ecc71', '#2ecc71'); // Light green background and border
 
-        // Add "Student ID" text
+        // Add column headers
         doc.fillColor('#ffffff') // White text
             .text('Student ID', leftMargin + 10, tableTop + 10);
 
-        // Add date texts
         attendanceData.classDates.forEach((date, index) => {
-            // Extract month and date from the date string
             const formattedDate = date.slice(5); // Remove the year (first 4 characters and the hyphen)
-
-            doc.fillColor('#ffffff') // White text
-                .text(formattedDate, leftMargin + (index + 1) * colWidth + 10, tableTop + 10);
+            doc.text(formattedDate, leftMargin + (index + 1) * colWidth + 10, tableTop + 10);
         });
 
-        // Add new column headers
-        doc.fillColor('#ffffff') // White text
-            .text('TC', leftMargin + (attendanceData.classDates.length + 1) * colWidth + 10, tableTop + 10)
-            .text('P', leftMargin + (attendanceData.classDates.length + 2) * colWidth + 10, tableTop + 10)
-            .text('%', leftMargin + (attendanceData.classDates.length + 3) * colWidth + 10, tableTop + 10);
+        doc.text('Total Att', leftMargin + (attendanceData.classDates.length + 2) * colWidth + 10, tableTop + 10)
+            .text('Total Class', leftMargin + (attendanceData.classDates.length + 1) * colWidth + 10, tableTop + 10)
+            .text('Percentage', leftMargin + (attendanceData.classDates.length + 3) * colWidth + 10, tableTop + 10)
+            .text('Marks', leftMargin + (attendanceData.classDates.length + 4) * colWidth + 10, tableTop + 10);
 
         // Draw table rows with alternating colors for better readability
         doc.font('Helvetica')
@@ -100,10 +96,10 @@ router.get('/generate_attendance_report/:courseId', async (req, res) => {
 
             // Alternate row background color
             if (rowIndex % 2 === 0) {
-                doc.rect(leftMargin, y, (numColumns + 1) * colWidth, rowHeight)
+                doc.rect(leftMargin, y, numColumns * colWidth, rowHeight)
                     .fillAndStroke('#ecf0f1', '#ecf0f1'); // Light gray background
             } else {
-                doc.rect(leftMargin, y, (numColumns + 1) * colWidth, rowHeight)
+                doc.rect(leftMargin, y, numColumns * colWidth, rowHeight)
                     .fillAndStroke('#ffffff', '#ffffff'); // White background
             }
 
@@ -112,53 +108,94 @@ router.get('/generate_attendance_report/:courseId', async (req, res) => {
                 .text(studentId, leftMargin + 10, y + 10);
 
             // Add attendance marks
-            attendanceData.studentAttendance[rowIndex].forEach((attendance, colIndex) => {
-                const x = leftMargin + (colIndex + 1) * colWidth + 10;
+            const attendanceRow = attendanceData.studentAttendance[rowIndex];
+            const totalClasses = attendanceData.classDates.length;
 
-                // Set font size smaller for P and A
-                doc.fontSize(10);
-
-                // Set color based on attendance
-                if (attendance) {
-                    doc.fillColor('#27ae60'); // Green for Present
-                } else {
-                    doc.fillColor('#e74c3c'); // Red for Absent
+            // Calculate the ratio for each class
+            const ratios = attendanceRow.map((attendance) => {
+                if (!attendance || attendance.length === 0) {
+                    return 0; // Absent (ratio = 0)
                 }
 
-                // Add P or A
-                doc.text(attendance ? 'P' : 'A', x, y + 10);
+                // Ensure requiredMinutes is a valid number
+                const requiredMinutesNum = Number(requiredMinutes);
+                if (isNaN(requiredMinutesNum)) {
+                    return 0; // Invalid requiredMinutes, treat as absent
+                }
 
-                // Reset font size and color for other text
-                doc.fontSize(12).fillColor('#2c3e50'); // Reset to default
+                // Calculate the difference between first and last timestamp
+                const firstTime = attendance[0];
+                const lastTime = attendance[attendance.length - 1];
+                const timeToMinutes = (time) => {
+                    const [hours, minutes] = time.split(":").map(Number);
+                    if (isNaN(hours) || isNaN(minutes)) {
+                        return NaN; // Handle invalid timestamp format
+                    }
+                    return hours * 60 + minutes;
+                };
+
+                const firstTimeMinutes = timeToMinutes(firstTime);
+                const lastTimeMinutes = timeToMinutes(lastTime);
+                if (isNaN(firstTimeMinutes) || isNaN(lastTimeMinutes)) {
+                    return 0; // Invalid timestamps, treat as absent
+                }
+
+                const timeDiff = lastTimeMinutes - firstTimeMinutes;
+                return Math.min(timeDiff / requiredMinutesNum, 1); // Clamp ratio to [0, 1]
             });
 
-            // Calculate total classes, present classes, and attendance percentage
-            const totalClasses = attendanceData.classDates.length;
-            const presentClasses = attendanceData.studentAttendance[rowIndex].filter((attendance) => attendance).length;
-            const attendancePercentage = ((presentClasses / totalClasses) * 100).toFixed(2);
+            // Add attendance ratios
+            ratios.forEach((ratio, colIndex) => {
+                const x = leftMargin + (colIndex + 1) * colWidth + 10;
+                doc.fontSize(8)
+                    .fillColor(ratio > 0 ? '#27ae60' : '#e74c3c') // Green for Present, Red for Absent
+                    .text(ratio.toFixed(1), x, y + 10);
+            });
 
-            // Add total classes
-            doc.fillColor('#2c3e50') // Dark blue text
-                .text(totalClasses.toString(), leftMargin + (attendanceData.classDates.length + 1) * colWidth + 10, y + 10);
+            // Calculate total ratio and percentage
+            const totalRatio = ratios.reduce((sum, ratio) => sum + ratio, 0) / totalClasses;
+            const attendancePercentage = (totalRatio * 100).toFixed(2);
 
-            // Add present classes
-            doc.fillColor('#2c3e50') // Dark blue text
-                .text(presentClasses.toString(), leftMargin + (attendanceData.classDates.length + 2) * colWidth + 10, y + 10);
+            // Calculate marks based on attendancePercentage
+            let marks = 0;
+            if (attendancePercentage >= 95) {
+                marks = 10;
+            } else if (attendancePercentage >= 90) {
+                marks = 9;
+            } else if (attendancePercentage >= 85) {
+                marks = 8;
+            } else if (attendancePercentage >= 80) {
+                marks = 7;
+            } else if (attendancePercentage >= 75) {
+                marks = 6;
+            } else if (attendancePercentage >= 70) {
+                marks = 5;
+            } else if (attendancePercentage >= 65) {
+                marks = 4;
+            } else if (attendancePercentage >= 60) {
+                marks = 3;
+            } else {
+                marks = 0;
+            }
 
-            // Add attendance percentage
-            doc.fillColor('#2c3e50') // Dark blue text
-                .text(`${attendancePercentage}%`, leftMargin + (attendanceData.classDates.length + 3) * colWidth + 10, y + 10);
+            // Add total classes, total ratio, attendance percentage, and marks
+            doc.fontSize(8)
+                .fillColor('#2c3e50') // Dark blue text
+                .text(totalRatio.toFixed(1), leftMargin + (attendanceData.classDates.length + 2) * colWidth + 10, y + 10)
+                .text(totalClasses.toString(), leftMargin + (attendanceData.classDates.length + 1) * colWidth + 10, y + 10)
+                .text(`${attendancePercentage}%`, leftMargin + (attendanceData.classDates.length + 3) * colWidth + 10, y + 10)
+                .text(marks.toString(), leftMargin + (attendanceData.classDates.length + 4) * colWidth + 10, y + 10);
         });
 
         // Draw table borders
         doc.lineWidth(1)
             .strokeColor('#bdc3c7') // Light gray border
-            .rect(leftMargin, tableTop, (numColumns + 1) * colWidth, (attendanceData.studentIds.length + 1) * rowHeight)
+            .rect(leftMargin, tableTop, numColumns * colWidth, (attendanceData.studentIds.length + 1) * rowHeight)
             .stroke();
 
         // Add a footer with the generation date
         const footerText = `Report generated on: ${new Date().toLocaleDateString()}`;
-        doc.fontSize(10)
+        doc.fontSize(8)
             .font('Helvetica')
             .fillColor('#7f8c8d') // Gray text
             .text(footerText, { align: 'center', width: doc.page.width - 100, height: 50 });
@@ -180,7 +217,7 @@ router.get('/generate_attendance_report/:courseId', async (req, res) => {
 router.get('/generate_attendance_report_html/:courseId', async (req, res) => {
     const { courseId } = req.params;
     const { requiredMinutes } = req.query; // Ensure this is passed as a query parameter
-    console.log(requiredMinutes);
+    console.log("min ",requiredMinutes);
 
     try {
         // Fetch attendance data from the API
@@ -421,10 +458,12 @@ router.get('/generate_attendance_report_html/:courseId', async (req, res) => {
             res.json({ filePath: relativePath });
         });
     } catch (err) {
-        console.error('Error generating PDF:', err);
-        res.status(500).json({ message: 'Error generating PDF' });
+        console.error('Error calling the generating PDF api:', err);
+        res.status(500).json({ message: 'Error calling the generating PDF api' });
     }
 });
+
+
 
 
 
