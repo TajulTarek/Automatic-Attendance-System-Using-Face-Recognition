@@ -8,6 +8,8 @@ import os
 import requests
 import pandas as pd
 
+baseUrl="https://automatic-attendance-system-using-face.onrender.com"
+
 def initialize():
     global loaded_descriptors, loaded_mp, mp_list, face_detector, points_detector, face_descriptor_extractor
 
@@ -32,7 +34,7 @@ def initialize():
 
 
 def call_api_with_result(result,room_no):
-    url = "http://localhost:5000/models/result"
+    url = baseUrl+"/models/result"
     data = {"result": result,"room_no":room_no} # Data to be sent in the POST request
     headers = {"Content-Type": "application/json"}  # Set headers for JSON content
 
@@ -44,7 +46,7 @@ def call_api_with_result(result,room_no):
         if response.status_code == 200:
             print("API Response:", response.json())  # Print the response from your Node.js API
         else:
-            print(f"Error: {response.status_code} - {response.text}")
+            print(f"Error    : {response.status_code} - {response.text}")
 
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")  # Error handling for the HTTP request

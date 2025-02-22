@@ -52,7 +52,7 @@ def process_camera(room_no, camera_url,camera_type):
                 results = get_class_from_np_img(image_np)
 
             # Call API with the results
-            call_api_with_result(results, f"gallery {room_no}")
+            call_api_with_result(results, f"{room_no}")
             print(f"Result for Camera {room_no}: {results}")
             
             # Sleep for a short duration before processing the next frame
@@ -68,8 +68,8 @@ def process_camera(room_no, camera_url,camera_type):
 if __name__ == "__main__":
     # List of cameras (ID and URL pairs)
     cameras = [
-        {"room_no": "g2", "url": config.G2_CAMERA_URL, "camera_type":"ip"},
-        {"room_no": "g1", "url": config.G1_CAMERA_URL, "camera_type":"mobile"},
+        # {"room_no": "g2", "url": config.G2_CAMERA_URL, "camera_type":"ip"},
+        {"room_no": "gallery 2", "url": config.G1_CAMERA_URL, "camera_type":"mobile"},
         # Add more cameras as needed
     ]
 
