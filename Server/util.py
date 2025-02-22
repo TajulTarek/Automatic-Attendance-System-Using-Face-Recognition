@@ -169,10 +169,10 @@ def get_class_from_yolo_img(image_np,face_detection):
     return results
 
 
-def capture_from_camera(room_no,camera_ip,port):
+def capture_from_camera(room_no,camera_ip):
     CAMERA_IP = camera_ip
-    PORT = port            
-    URL = f"http://{CAMERA_IP}:{PORT}/shot.jpg"
+        
+    URL = f"http://{CAMERA_IP}/shot.jpg"
 
     try:
         response = requests.get(URL, stream=True)  # Fetch a fresh image
@@ -211,4 +211,24 @@ def initialize_insight_face():
     dataframe = pd.DataFrame(file_np['arr_0'], columns=file_np['arr_1'])
 
 
+def capture_from_ip_camera(room_no,url):
 
+    cap = cv2.VideoCapture(url)
+    # Check if the stream is opened
+    if not cap.isOpened():
+        print("Error: Could not open video stream")
+        exit()
+
+    # Read a frame
+    ret, frame = cap.read()
+    if ret is not None:
+        filename = f"captured_images/captured_image_{room_no}.jpg"
+        cv2.imwrite(filename, frame)
+        print(f"Image saved as {filename}")
+    else:
+        print("Failed to decode image.")
+
+    # Release the capture object
+    cap.release()
+    cv2.destroyAllWindows()
+    return filename

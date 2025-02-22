@@ -6,33 +6,22 @@ const Schedule = require('../models/Schedule');
 const Teacher = require('../models/Teacher')
 const fs = require('fs');
 const path = require('path');
-const PDFDocument = require('pdfkit'); 
+const PDFDocument = require('pdfkit');
 const axios = require('axios');
 const RoomToCourse = require('../models/RoomToCourse');
 const mongoose = require('mongoose');
-
-
-const mockAttendanceData = {
-    name: 'AI',
-    classDates: ['2025-01-31', '2025-02-01'],
-    studentIds: ['2020331067', '2020331048', '2020331017', '2020331001', '2020331023', '2020331097'],
-    studentAttendance: [
-        [false, true],  // 2020331067
-        [false, false], // 2020331048
-        [false, false], // 2020331017
-        [false, false], // 2020331001
-        [false, false], // 2020331023
-        [false, false]  // 2020331097
-    ]
-};
+const pdf = require('html-pdf');
 
 
 router.get('/generate_attendance_report/:courseId', async (req, res) => {
     const { courseId } = req.params;
+    const { requiredMinutes } = req.query;
+
+    console.log(requiredMinutes);
 
     try {
         // Fetch attendance data from the API
-        const response = await axios.get(`http://localhost:5000/courses/get_attendance/${courseId}`);
+        const response = await axios.get(`${process.env.URL}/courses/get_attendance/${courseId}`);
         const attendanceData = response.data;
 
         if (!attendanceData) {
@@ -40,10 +29,10 @@ router.get('/generate_attendance_report/:courseId', async (req, res) => {
         }
 
         // Create the reports directory if it doesn't exist
-        const reportsDir = path.join(__dirname, '..','reports');
+        const reportsDir = path.join(__dirname, '..', 'reports');
         if (!fs.existsSync(reportsDir)) {
             fs.mkdirSync(reportsDir, { recursive: true });
-        }   
+        }
 
         // Create a new PDF document
         const doc = new PDFDocument({ margin: 50 });
@@ -60,6 +49,7 @@ router.get('/generate_attendance_report/:courseId', async (req, res) => {
         //     .text(`Attendance Report for ${attendanceData.name}`, { align: 'center' });
 
         // Add a subtitle with course ID
+
         doc.fontSize(14)
             .font('Helvetica')
             .fillColor('#34495e') // Slightly lighter blue
@@ -184,6 +174,258 @@ router.get('/generate_attendance_report/:courseId', async (req, res) => {
         res.status(500).json({ message: 'Error generating PDF' });
     }
 });
+
+
+
+router.get('/generate_attendance_report_html/:courseId', async (req, res) => {
+    const { courseId } = req.params;
+    const { requiredMinutes } = req.query; // Ensure this is passed as a query parameter
+    console.log(requiredMinutes);
+
+    try {
+        // Fetch attendance data from the API
+        const response = await axios.get(`${process.env.URL}/courses/get_attendance/${courseId}`);
+        const attendanceData = response.data;
+
+        if (!attendanceData) {
+            return res.status(404).json({ message: 'Attendance data not found' });
+        }
+
+        // Create the reports directory if it doesn't exist
+        const reportsDir = path.join(__dirname, '..', 'reports');
+        if (!fs.existsSync(reportsDir)) {
+            fs.mkdirSync(reportsDir, { recursive: true });
+        }
+
+        // Generate HTML content for the PDF
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Attendance Report</title>
+                <style>
+                    body {
+                        font-family: 'Arial', sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                        background-color: #f8f9fa;
+                    }
+                    .container {
+                        background-color: #ffffff;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        border-radius: 8px;
+                        overflow: hidden;
+                        width: fit-content; /* Adjust width based on content */
+                    }
+                    h1 {
+                        text-align: center;
+                        color: #202124;
+                        font-size: 24px;
+                        font-weight: 600;
+                        margin: 20px 0;
+                    }
+                    h2 {
+                        text-align: center;
+                        color: #5f6368;
+                        font-size: 18px;
+                        font-weight: 500;
+                        margin-bottom: 20px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        background-color: #ffffff;
+                    }
+                    th, td {
+                        padding: 12px 15px;
+                        text-align: center;
+                        border: 1px solid #e0e0e0;
+                        font-size: 14px;
+                    }
+                    th {
+                        background-color: #f1f3f4;
+                        color: #202124;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f8f9fa;
+                    }
+                    tr:hover {
+                        background-color: #f1f3f4;
+                    }
+                    .present {
+                        color: #34a853;
+                        font-weight: 600;
+                    }
+                    .absent {
+                        color: #ea4335;
+                        font-weight: 600;
+                    }
+                    .footer {
+                        text-align: center;
+                        margin-top: 20px;
+                        padding: 10px;
+                        color: #5f6368;
+                        font-size: 12px;
+                        border-top: 1px solid #e0e0e0;
+                        background-color: #f8f9fa;
+                    }
+                    .highlight {
+                        background-color: #e8f0fe;
+                        color: #1967d2;
+                        font-weight: 600;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Attendance Report for ${attendanceData.name}</h1>
+                    <h2>Course Code: ${courseId}</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                ${attendanceData.classDates.map(date => `
+                                    <th>${date.slice(5)}</th>
+                                `).join('')}
+                                <th class="highlight">TC</th>
+                                <th class="highlight">Total Ratio</th>
+                                <th class="highlight">%</th>
+                                <th class="highlight">Marks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${attendanceData.studentIds.map((studentId, rowIndex) => {
+            const attendanceRow = attendanceData.studentAttendance[rowIndex];
+            const totalClasses = attendanceData.classDates.length;
+
+            // Calculate the ratio for each class
+            const ratios = attendanceRow.map((attendance) => {
+                if (!attendance || attendance.length === 0) {
+                    return 0; // Absent (ratio = 0)
+                }
+
+                // Ensure requiredMinutes is a valid number
+                const requiredMinutesNum = Number(requiredMinutes);
+                if (isNaN(requiredMinutesNum)) {
+                    return 0; // Invalid requiredMinutes, treat as absent
+                }
+
+                // Calculate the difference between first and last timestamp
+                const firstTime = attendance[0];
+                const lastTime = attendance[attendance.length - 1];
+                const timeToMinutes = (time) => {
+                    const [hours, minutes] = time.split(":").map(Number);
+                    if (isNaN(hours) || isNaN(minutes)) {
+                        return NaN; // Handle invalid timestamp format
+                    }
+                    return hours * 60 + minutes;
+                };
+
+                const firstTimeMinutes = timeToMinutes(firstTime);
+                const lastTimeMinutes = timeToMinutes(lastTime);
+                if (isNaN(firstTimeMinutes) || isNaN(lastTimeMinutes)) {
+                    return 0; // Invalid timestamps, treat as absent
+                }
+
+                const timeDiff = lastTimeMinutes - firstTimeMinutes;
+                return Math.min(timeDiff / requiredMinutesNum, 1); // Clamp ratio to [0, 1]
+            });
+
+            // Calculate total ratio and percentage
+            const totalRatio = ratios.reduce((sum, ratio) => sum + ratio, 0) / totalClasses;
+            const attendancePercentage = (totalRatio * 100).toFixed(2);
+
+            // Calculate marks based on attendancePercentage
+            let marks = 0;
+            if (attendancePercentage >= 95) {
+                marks = 10;
+            } else if (attendancePercentage >= 90) {
+                marks = 9;
+            } else if (attendancePercentage >= 85) {
+                marks = 8;
+            } else if (attendancePercentage >= 80) {
+                marks = 7;
+            } else if (attendancePercentage >= 75) {
+                marks = 6;
+            } else if (attendancePercentage >= 70) {
+                marks = 5;
+            } else if (attendancePercentage >= 65) {
+                marks = 4;
+            } else if (attendancePercentage >= 60) {
+                marks = 3;
+            } else {
+                marks = 0;
+            }
+
+            return `
+                                    <tr>
+                                        <td>${studentId}</td>
+                                        ${ratios.map(ratio => `
+                                            <td class="${ratio > 0 ? 'present' : 'absent'}">
+                                                ${ratio.toFixed(1)}
+                                            </td>
+                                        `).join('')}
+                                        <td class="highlight">${totalClasses}</td>
+                                        <td class="highlight">${totalRatio.toFixed(1)}</td>
+                                        <td class="highlight">${attendancePercentage}%</td>
+                                        <td class="highlight">${marks}</td>
+                                    </tr>
+                                `;
+        }).join('')}
+                        </tbody>
+                    </table>
+                    <div class="footer">
+                        Report generated on: ${new Date().toLocaleDateString()}
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        // Calculate the required width based on the number of columns
+        const numColumns = attendanceData.classDates.length + 5; // Student ID + Dates + TC + Total Ratio + % + Marks
+        const columnWidth = 100; // Approximate width of each column in pixels
+        const pageWidth = numColumns * columnWidth;
+
+        // Options for html-pdf
+        const pdfOptions = {
+            format: {
+                width: `${pageWidth}px`, // Set dynamic width
+                height: 'auto', // Let the height adjust automatically
+            },
+            border: {
+                top: '20mm',
+                right: '10mm',
+                bottom: '20mm',
+                left: '10mm'
+            }
+        };
+
+        // Generate PDF from HTML
+        pdf.create(htmlContent, pdfOptions).toFile(path.join(reportsDir, `attendance_report_${Date.now()}.pdf`), (err, result) => {
+            if (err) {
+                console.error('Error generating PDF:', err);
+                return res.status(500).json({ message: 'Error generating PDF', error: err.message });
+            }
+
+            // Extract the relative path starting from the "reports" directory
+            const fullPath = result.filename;
+            const reportsIndex = fullPath.indexOf('reports');
+            const relativePath = fullPath.slice(reportsIndex - 1);
+
+            // Send the relative path as the response
+            res.json({ filePath: relativePath });
+        });
+    } catch (err) {
+        console.error('Error generating PDF:', err);
+        res.status(500).json({ message: 'Error generating PDF' });
+    }
+});
+
 
 
 // Helper function to check if two time ranges overlap
@@ -346,11 +588,11 @@ router.get('/get_attendance/:course_id', async (req, res) => {
         const studentIds = course.student_ids;
 
         let studentAttendance = studentIds.map(() => []);
-        let classDates = []; 
+        let classDates = [];
 
 
         course.classes.forEach((classData) => {
-            const { class_date, attendance } = classData; 
+            const { class_date, attendance } = classData;
 
             classDates.push(class_date.toISOString().split('T')[0]);
 
@@ -368,11 +610,11 @@ router.get('/get_attendance/:course_id', async (req, res) => {
             });
         });
 
-        studentIds.forEach((student_id, index) => {
-            console.log(`Student ID: ${student_id}`);
-            console.log(`Attendance: ${JSON.stringify(studentAttendance[index])}`);
-        });
-        
+        // studentIds.forEach((student_id, index) => {
+        //     console.log(`Student ID: ${student_id}`);
+        //     console.log(`Attendance: ${JSON.stringify(studentAttendance[index])}`);
+        // });
+
         res.status(200).json({
             name: course.name,
             studentIds: studentIds,
@@ -404,7 +646,7 @@ router.post('/start-class', async (req, res) => {
         }
 
         course.total_class += 1;
-    
+
 
         const newClass = {
             _id: new mongoose.Types.ObjectId(),
@@ -431,7 +673,7 @@ router.post('/start-class', async (req, res) => {
         } else {
             room.current_course_id = course_id;
             room.class_id = newClass._id;
-        }   
+        }
 
         await room.save();
 

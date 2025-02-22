@@ -18,9 +18,12 @@ const cors = require('cors');
 
 
 
+
 dotenv.config(); 
 
 const app = express();
+
+
 
 app.use(bodyParser.json({ limit: "50mb" })); // Allow large image uploads
 app.use(express.static("uploads")); // Serve images from the uploads folder
